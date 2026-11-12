@@ -4,3 +4,8 @@ plugins {
     alias(libs.plugins.google.services) apply false
 }
 
+subprojects {
+    layout.buildDirectory.set(
+        file("${System.getProperty("java.io.tmpdir")}/ActiveStudentBuild/${project.name}")
+    )
+}
