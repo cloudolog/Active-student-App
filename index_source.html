@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Student | The Hub</title>
+    <style>
+        :root {
+            --bg: #0f0f10;
+            --card-bg: #161617;
+            --text-main: #ffffff;
+            --text-muted: #9a9a9a;
+            --accent: #ff9a2c;
+            /* Matching w4.html accent */
+            --accent-glow: rgba(255, 154, 44, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, #0b0b0b 0%, #121212 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Nav */
+        nav {
+            width: 100%;
+            padding: 24px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(11, 11, 11, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        /* Hero */
+        header {
+            text-align: center;
+            padding: 80px 24px;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: 56px;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #fff, #bbb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 18px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Grid */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            width: 90%;
+            max-width: 1200px;
+            margin-bottom: 80px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            height: 320px;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-top: 24px;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: #0b0b0b;
+        }
+
+        .btn svg {
+            margin-left: 8px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 14px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">Active<span>Student</span></div>
+
+        <!-- Auth UI -->
+        <div style="display:flex; align-items:center; gap:20px;">
+            <div id="auth-loading" style="color: var(--text-muted); font-size: 14px;">Connecting...</div>
+
+            <div id="auth-guest" style="display:none; align-items:center; gap:16px;">
+                <a href="login.html"
+                    style="background: var(--accent); color: #000; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13px; transition:transform 0.2s;">Login</a>
+            </div>
+
+            <div id="auth-user" style="display:none; align-items:center; gap:16px;">
+                <div style="text-align:right;">
+                    <div id="user-name" style="color:white; font-weight:700; font-size:14px; line-height:1.2;"></div>
+                    <div id="user-roll"
+                        style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                        Student</div>
+                </div>
+                <button onclick="logout()"
+                    style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; transition:all 0.2s;">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header>
+        <h1>Everything You Need,<br>One Platform.</h1>
+        <p class="subtitle">Access the most powerful student tools designed to make campus life seamless, transparent,
+            and digital.</p>
+    </header>
+
+    <div class="container">
+        <!-- Card 1: Voting -->
+        <article class="card">
+            <div>
+                <div class="card-icon">🗳️</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Campus Voting</h2>
+                    <small id="voting-status"
+                        style="font-weight:bold; font-size:0.8rem; text-transform:uppercase; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:4px;">Connecting...</small>
+                </div>
+                <p>Secure, transparent, and encrypted digital election system. Cast your vote and shape the future.</p>
+            </div>
+            <a href="#" onclick="navigate(event, 'home.html')" class="btn">
+                Launch Voting
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3">
+                    </path>
+                </svg>
+            </a>
+        </article>
+
+        <!-- Card 2: Ledger -->
+        <article class="card">
+            <div>
+                <div class="card-icon">📊</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Tracurrency</h2>
+                    <small id="ledger-balance"
+                        style="font-weight:bold; font-size:0.9rem; font-family:monospace;">...</small>
+                </div>
+                <p>Track every transaction with precision. A centralized dashboard for budget management and financial
+                    reporting.</p>
+            </div>
+            <a href="#" onclick="navigate(event, 'tracurrency.html')" class="btn">
+                View Tracurrency
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3">
+                    </path>
+                </svg>
+            </a>
+        </article>
+
+        <!-- Card 3: Canteen -->
+        <article class="card">
+            <div>
+                <div class="card-icon">🍔</div>
+                <h2>Online Canteen</h2>
+                <p>Skip the queue! Browse the daily menu, pre-order your meals, and pick up when ready.</p>
+            </div>
+            <a href="#" onclick="navigate(event, 'student_canteen.html')" class="btn">
+                Order Food
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3">
+                    </path>
+                </svg>
+            </a>
+        </article>
+    </div>
+
+    <footer>
+        &copy; 2025 Anurag University Active Student Portal. Built for efficiency.
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyClARhFkDSzzLC1gmZbG1GNTU1j-6Iqr4g",
+            authDomain: "activestudent-cloudolog.firebaseapp.com",
+            projectId: "activestudent-cloudolog",
+            storageBucket: "activestudent-cloudolog.firebasestorage.app",
+            messagingSenderId: "758871430641",
+            appId: "1:758871430641:web:9cf49554e093a7e5a2e050",
+            measurementId: "G-7416LT7KNJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        // --- AUTH STATUS ---
+        onAuthStateChanged(auth, (user) => {
+            const loading = document.getElementById('auth-loading');
+            const guest = document.getElementById('auth-guest');
+            const userDiv = document.getElementById('auth-user');
+
+            loading.style.display = 'none';
+
+            if (user) {
+                currentUser = user;
+                guest.style.display = 'none';
+                userDiv.style.display = 'flex';
+                document.getElementById('user-name').innerText = user.displayName || "Student";
+
+                // Optional: Fetch Roll No if needed, but for now we just show "Student"
+                // Sync with Voting App Session Key
+                localStorage.setItem('anurag_voting_session_fb', JSON.stringify({
+                    name: user.displayName || "Student",
+                    email: user.email,
+                    firestoreId: user.uid
+                }));
+            } else {
+                localStorage.removeItem('anurag_voting_session_fb');
+                currentUser = null;
+                userDiv.style.display = 'none';
+                guest.style.display = 'flex';
+            }
+        });
+
+        // Global functions
+        window.logout = () => signOut(auth);
+
+        window.navigate = (e, url) => {
+            e.preventDefault();
+            if (currentUser) {
+                // Route Admins correctly if they click manual links
+                if (url.includes('canteen') && currentUser.email === 'canteen@anurag.edu.in') {
+                    window.location.href = 'admin_canteen.html';
+                    return;
+                }
+                if (url.includes('tracurrency') && currentUser.email === 'tracurrency@anurag.edu.in') {
+                    window.location.href = 'tracurrency.html';
+                    return;
+                }
+                window.location.href = url;
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // --- 1. LIVE VOTING STATUS ---
+        // --- 1. LIVE VOTING STATUS (Multi-Room Support) ---
+        const activeElectionsQuery = query(collection(db, "elections"), where("status", "==", "active"));
+        onSnapshot(activeElectionsQuery, (snapshot) => {
+            const statusEl = document.getElementById('voting-status');
+            if (!snapshot.empty) {
+                const count = snapshot.size;
+                statusEl.innerHTML = `<span style="color:#4CAF50">● LIVE NOW (${count})</span>`;
+                statusEl.title = `${count} Active Election(s)`;
+            } else {
+                statusEl.innerText = "No Active Polls";
+            }
+        });
+
+        // --- 2. LIVE TRACURRENCY BALANCE ---
+        const q = query(collection(db, "ledger"), orderBy("timestamp", "desc"), limit(50));
+        onSnapshot(q, (snapshot) => {
+            let balance = 45250; // Base
+            snapshot.forEach(doc => {
+                const tx = doc.data();
+                if (tx.type === 'debit') balance -= tx.amount;
+                if (tx.type === 'credit') balance += tx.amount;
+            });
+            const balanceEl = document.getElementById('ledger-balance');
+            balanceEl.innerText = "₹" + balance.toLocaleString();
+            balanceEl.style.color = "#ff9a2c";
+        });
+
+    </script>
+</body>
+
+</html>
