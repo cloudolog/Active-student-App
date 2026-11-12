@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "601731908205",
+    "project_id": "active-student-app",
+    "storage_bucket": "active-student-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601731908205:android:a8ada00c597cd932977564",
+        "android_client_info": {
+          "package_name": "Cloudolo.G"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBof-k1ReEk9ZK-4wJtCRGKOaL7BLL3Kj4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601731908205:android:0c99287a40fae900977564",
+        "android_client_info": {
+          "package_name": "com.anurag.activestudent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBof-k1ReEk9ZK-4wJtCRGKOaL7BLL3Kj4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

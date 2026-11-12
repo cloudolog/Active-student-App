@@ -12,11 +12,11 @@ class ActiveStudentApp : Application() {
         super.onCreate()
         if (FirebaseApp.getApps(this).isEmpty()) {
             val options = FirebaseOptions.Builder()
-                .setApiKey("AIzaSyClARhFkDSzzLC1gmZbG1GNTU1j-6Iqr4g")
-                .setApplicationId("1:758871430641:web:9cf49554e093a7e5a2e050")
-                .setProjectId("activestudent-cloudolog")
-                .setStorageBucket("activestudent-cloudolog.firebasestorage.app")
-                .setGcmSenderId("758871430641")
+                .setApiKey("AIzaSyBof-k1ReEk9ZK-4wJtCRGKOaL7BLL3Kj4")
+                .setApplicationId("1:601731908205:android:0c99287a40fae900977564")
+                .setProjectId("active-student-app")
+                .setStorageBucket("active-student-app.firebasestorage.app")
+                .setGcmSenderId("601731908205")
                 .build()
             FirebaseApp.initializeApp(this, options)
         }
