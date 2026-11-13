@@ -404,8 +404,21 @@ fun LoginScreen(
                     isLoading = uiState.isLoading,
                     onClick = {
                         onDismissError()
-                        googleSignInClient.signOut().addOnCompleteListener {
+                        val availability = com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                        val resultCode = availability.isGooglePlayServicesAvailable(context)
+                        if (resultCode != com.google.android.gms.common.ConnectionResult.SUCCESS) {
+                            if (availability.isUserResolvableError(resultCode) && context is Activity) {
+                                availability.showErrorDialogFragment(context, resultCode, 9001)
+                            } else {
+                                onGoogleSignInError("Google Play Services on this device/emulator is outdated or missing. Please sign in with Email & Password below.")
+                            }
+                            return@GoogleSignInButton
+                        }
+
+                        try {
                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        } catch (e: Exception) {
+                            onGoogleSignInError("Unable to launch Google Sign-In: ${e.localizedMessage ?: "Unknown error"}")
                         }
                     }
                 )
@@ -667,8 +680,21 @@ fun RegisterScreen(
                     isLoading = uiState.isLoading,
                     onClick = {
                         onDismissError()
-                        googleSignInClient.signOut().addOnCompleteListener {
+                        val availability = com.google.android.gms.common.GoogleApiAvailability.getInstance()
+                        val resultCode = availability.isGooglePlayServicesAvailable(context)
+                        if (resultCode != com.google.android.gms.common.ConnectionResult.SUCCESS) {
+                            if (availability.isUserResolvableError(resultCode) && context is Activity) {
+                                availability.showErrorDialogFragment(context, resultCode, 9001)
+                            } else {
+                                onGoogleSignInError("Google Play Services on this device/emulator is outdated or missing. Please sign up using the form below.")
+                            }
+                            return@GoogleSignInButton
+                        }
+
+                        try {
                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        } catch (e: Exception) {
+                            onGoogleSignInError("Unable to launch Google Sign-In: ${e.localizedMessage ?: "Unknown error"}")
                         }
                     }
                 )
