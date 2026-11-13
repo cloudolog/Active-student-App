@@ -50,7 +50,7 @@ class TracurrencyViewModel : ViewModel() {
     private var rawExpenseDocs: List<LedgerTx> = emptyList()
 
     fun bindUser(user: UserProfile) {
-        val admin = FirebaseRepo.isTracurrencyAdmin(user.email)
+        val admin = FirebaseRepo.isTracurrencyAdmin(user.email, user.role)
         currentUser = user
         if (lobbyListener != null) {
             _uiState.update { it.copy(isAdmin = admin) }

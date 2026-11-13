@@ -60,7 +60,7 @@ class CanteenViewModel : ViewModel() {
     private var initialMyOrdersLoaded = false
 
     fun bindUser(user: UserProfile) {
-        val admin = FirebaseRepo.isCanteenAdmin(user.email)
+        val admin = FirebaseRepo.isCanteenAdmin(user.email, user.role)
         val sameUser = currentUser?.uid == user.uid && menuListener != null
         currentUser = user
         if (sameUser) {

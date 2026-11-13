@@ -1,4 +1,4 @@
-{
+﻿{
   "project_info": {
     "project_number": "601731908205",
     "project_id": "active-student-app",
@@ -12,7 +12,12 @@
           "package_name": "Cloudolo.G"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "601731908205-5vgeiikrrn7ku8q6jtou9pulrn9naiq3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBof-k1ReEk9ZK-4wJtCRGKOaL7BLL3Kj4"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "601731908205-5vgeiikrrn7ku8q6jtou9pulrn9naiq3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,20 @@
           "package_name": "com.anurag.activestudent"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "601731908205-ehh403ef3bnlq3hojjeo5svvrapv8kt5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anurag.activestudent",
+            "certificate_hash": "bdc385df56f3a388720b2ef3650a191cd7901726"
+          }
+        },
+        {
+          "client_id": "601731908205-5vgeiikrrn7ku8q6jtou9pulrn9naiq3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBof-k1ReEk9ZK-4wJtCRGKOaL7BLL3Kj4"
@@ -39,7 +62,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "601731908205-5vgeiikrrn7ku8q6jtou9pulrn9naiq3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -74,9 +74,11 @@ fun HubScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     val roleLabel = when {
-        FirebaseRepo.isVotingAdmin(user.email) -> "VOTING ADMIN"
-        FirebaseRepo.isTracurrencyAdmin(user.email) -> "TRACURRENCY ADMIN"
-        FirebaseRepo.isCanteenAdmin(user.email) -> "CANTEEN ADMIN"
+        FirebaseRepo.isSuperAdmin(user.email) -> "SUPER ADMIN"
+        FirebaseRepo.isVotingAdmin(user.email, user.role) -> "VOTING ADMIN"
+        FirebaseRepo.isTracurrencyAdmin(user.email, user.role) -> "TRACURRENCY ADMIN"
+        FirebaseRepo.isCanteenAdmin(user.email, user.role) -> "CANTEEN ADMIN"
+        user.role.isNotBlank() && user.role != "student" -> user.role.replace('_', ' ').uppercase()
         else -> user.rollNo.ifBlank { "STUDENT" }
     }
 

@@ -13,21 +13,41 @@ object FirebaseRepo {
     val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
+    const val GOOGLE_WEB_CLIENT_ID = "601731908205-5vgeiikrrn7ku8q6jtou9pulrn9naiq3.apps.googleusercontent.com"
+
     const val VOTING_ADMIN_EMAIL = "voting@anurag.edu.in"
     const val TRACURRENCY_ADMIN_EMAIL = "tracurrency@anurag.edu.in"
     const val CANTEEN_ADMIN_EMAIL = "canteen@anurag.edu.in"
+    const val SUPER_ADMIN_EMAIL = "cloudolog@gmail.com"
 
-    fun isVotingAdmin(email: String?): Boolean =
-        email?.trim()?.equals(VOTING_ADMIN_EMAIL, ignoreCase = true) == true
+    fun isSuperAdmin(email: String?): Boolean {
+        val e = email?.trim() ?: return false
+        return e.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
+    }
 
-    fun isTracurrencyAdmin(email: String?): Boolean =
-        email?.trim()?.equals(TRACURRENCY_ADMIN_EMAIL, ignoreCase = true) == true
+    fun isVotingAdmin(email: String?, role: String? = null): Boolean {
+        val r = role?.trim()?.lowercase(Locale.ROOT)
+        if (r == "voting_admin" || r == "super_admin" || r == "admin") return true
+        val e = email?.trim() ?: return false
+        return e.equals(VOTING_ADMIN_EMAIL, ignoreCase = true) || isSuperAdmin(e)
+    }
 
-    fun isCanteenAdmin(email: String?): Boolean =
-        email?.trim()?.equals(CANTEEN_ADMIN_EMAIL, ignoreCase = true) == true
+    fun isTracurrencyAdmin(email: String?, role: String? = null): Boolean {
+        val r = role?.trim()?.lowercase(Locale.ROOT)
+        if (r == "tracurrency_admin" || r == "super_admin" || r == "admin") return true
+        val e = email?.trim() ?: return false
+        return e.equals(TRACURRENCY_ADMIN_EMAIL, ignoreCase = true) || isSuperAdmin(e)
+    }
 
-    fun isAnyAdmin(email: String?): Boolean =
-        isVotingAdmin(email) || isTracurrencyAdmin(email) || isCanteenAdmin(email)
+    fun isCanteenAdmin(email: String?, role: String? = null): Boolean {
+        val r = role?.trim()?.lowercase(Locale.ROOT)
+        if (r == "canteen_admin" || r == "super_admin" || r == "admin") return true
+        val e = email?.trim() ?: return false
+        return e.equals(CANTEEN_ADMIN_EMAIL, ignoreCase = true) || isSuperAdmin(e)
+    }
+
+    fun isAnyAdmin(email: String?, role: String? = null): Boolean =
+        isSuperAdmin(email) || isVotingAdmin(email, role) || isTracurrencyAdmin(email, role) || isCanteenAdmin(email, role)
 }
 
 fun DocumentSnapshot.safeString(field: String, default: String = ""): String {

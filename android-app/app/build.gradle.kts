@@ -61,5 +61,6 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.zxing.core)
+    implementation(libs.play.services.auth)
 }
 

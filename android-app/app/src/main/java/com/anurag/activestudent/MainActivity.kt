@@ -104,6 +104,12 @@ private fun ActiveStudentRoot() {
                     onRegister = { name, roll, email, pass, confirm ->
                         authVm.register(name, roll, email, pass, confirm)
                     },
+                    onGoogleSignIn = { idToken, name, email ->
+                        authVm.signInWithGoogle(idToken, name, email)
+                    },
+                    onGoogleSignInError = { err ->
+                        authVm.onGoogleSignInError(err)
+                    },
                     onNavigateToLogin = { showRegister = false },
                     onDismissError = { authVm.clearMessages() }
                 )
@@ -111,6 +117,12 @@ private fun ActiveStudentRoot() {
                 LoginScreen(
                     uiState = authState,
                     onSignIn = { email, pass -> authVm.signIn(email, pass) },
+                    onGoogleSignIn = { idToken, name, email ->
+                        authVm.signInWithGoogle(idToken, name, email)
+                    },
+                    onGoogleSignInError = { err ->
+                        authVm.onGoogleSignInError(err)
+                    },
                     onForgotPassword = { email -> authVm.sendPasswordReset(email) },
                     onNavigateToRegister = { showRegister = true },
                     onDismissError = { authVm.clearMessages() }
@@ -123,9 +135,9 @@ private fun ActiveStudentRoot() {
             var selectedTab by remember(user.uid) {
                 mutableIntStateOf(
                     when {
-                        FirebaseRepo.isVotingAdmin(user.email) -> 1
-                        FirebaseRepo.isTracurrencyAdmin(user.email) -> 2
-                        FirebaseRepo.isCanteenAdmin(user.email) -> 3
+                        FirebaseRepo.isVotingAdmin(user.email, user.role) && !FirebaseRepo.isSuperAdmin(user.email) -> 1
+                        FirebaseRepo.isTracurrencyAdmin(user.email, user.role) && !FirebaseRepo.isSuperAdmin(user.email) -> 2
+                        FirebaseRepo.isCanteenAdmin(user.email, user.role) && !FirebaseRepo.isSuperAdmin(user.email) -> 3
                         else -> 0
                     }
                 )

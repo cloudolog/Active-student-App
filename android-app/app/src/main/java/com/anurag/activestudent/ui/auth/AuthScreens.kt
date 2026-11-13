@@ -1,6 +1,10 @@
 package com.anurag.activestudent.ui.auth
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,8 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +59,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anurag.activestudent.data.FirebaseRepo
 import com.anurag.activestudent.ui.components.AppTextField
 import com.anurag.activestudent.ui.components.ErrorBanner
 import com.anurag.activestudent.ui.components.GlassCard
@@ -59,11 +69,114 @@ import com.anurag.activestudent.ui.theme.GreenSoft
 import com.anurag.activestudent.ui.theme.GreenSuccess
 import com.anurag.activestudent.ui.theme.TextMain
 import com.anurag.activestudent.ui.theme.TextMuted
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.common.api.ApiException
+
+@Composable
+fun GoogleLogo(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+        val r = (w.coerceAtMost(h) / 2f) * 0.9f
+        val stroke = r * 0.38f
+        val arcRadius = r - stroke / 2f
+        val arcSize = Size(arcRadius * 2f, arcRadius * 2f)
+        val arcTopLeft = Offset(cx - arcRadius, cy - arcRadius)
+
+        // Red (top)
+        drawArc(
+            color = Color(0xFFEA4335),
+            startAngle = 180f,
+            sweepAngle = 105f,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = stroke)
+        )
+        // Yellow (bottom-left)
+        drawArc(
+            color = Color(0xFFFBBC05),
+            startAngle = 120f,
+            sweepAngle = 60f,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = stroke)
+        )
+        // Green (bottom-right)
+        drawArc(
+            color = Color(0xFF34A853),
+            startAngle = 30f,
+            sweepAngle = 90f,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = stroke)
+        )
+        // Blue (right)
+        drawArc(
+            color = Color(0xFF4285F4),
+            startAngle = -45f,
+            sweepAngle = 75f,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = stroke)
+        )
+        // Blue crossbar
+        drawLine(
+            color = Color(0xFF4285F4),
+            start = Offset(cx, cy),
+            end = Offset(cx + arcRadius + stroke / 2f, cy),
+            strokeWidth = stroke
+        )
+    }
+}
+
+@Composable
+fun GoogleSignInButton(
+    text: String,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        enabled = !isLoading,
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF1E1E24),
+        border = BorderStroke(1.dp, Color(0xFF33333E)),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(50.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GoogleLogo(modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = text,
+                color = TextMain,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+        }
+    }
+}
 
 @Composable
 fun LoginScreen(
     uiState: AuthUiState,
     onSignIn: (String, String) -> Unit,
+    onGoogleSignIn: (String, String?, String?) -> Unit,
+    onGoogleSignInError: (String) -> Unit,
     onForgotPassword: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
     onDismissError: () -> Unit
@@ -71,6 +184,41 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val googleSignInClient = remember(context) {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(FirebaseRepo.GOOGLE_WEB_CLIENT_ID)
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (!idToken.isNullOrBlank()) {
+                    onGoogleSignIn(idToken, account.displayName, account.email)
+                } else {
+                    onGoogleSignInError("Unable to retrieve Google ID token.")
+                }
+            } catch (e: ApiException) {
+                val msg = when (e.statusCode) {
+                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> null
+                    GoogleSignInStatusCodes.NETWORK_ERROR -> "Network error during Google sign in."
+                    10 -> "Configuration error (Code 10). Google SHA-1 is being synchronized."
+                    12500 -> "Sign in failed (Code 12500). Please update Google Play Services."
+                    else -> "Google sign-in error (${e.statusCode}): ${e.message}"
+                }
+                if (msg != null) onGoogleSignInError(msg)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -221,6 +369,46 @@ fun LoginScreen(
                         Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(Color(0xFF2E2E38))
+                    )
+                    Text(
+                        text = "OR",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(Color(0xFF2E2E38))
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                GoogleSignInButton(
+                    text = "Continue with Google",
+                    isLoading = uiState.isLoading,
+                    onClick = {
+                        onDismissError()
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        }
+                    }
+                )
             }
 
             Spacer(Modifier.height(20.dp))
@@ -246,6 +434,8 @@ fun LoginScreen(
 fun RegisterScreen(
     uiState: AuthUiState,
     onRegister: (String, String, String, String, String) -> Unit,
+    onGoogleSignIn: (String, String?, String?) -> Unit,
+    onGoogleSignInError: (String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onDismissError: () -> Unit
 ) {
@@ -255,6 +445,41 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val googleSignInClient = remember(context) {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(FirebaseRepo.GOOGLE_WEB_CLIENT_ID)
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (!idToken.isNullOrBlank()) {
+                    onGoogleSignIn(idToken, account.displayName, account.email)
+                } else {
+                    onGoogleSignInError("Unable to retrieve Google ID token.")
+                }
+            } catch (e: ApiException) {
+                val msg = when (e.statusCode) {
+                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> null
+                    GoogleSignInStatusCodes.NETWORK_ERROR -> "Network error during Google sign up."
+                    10 -> "Configuration error (Code 10). Google SHA-1 is being synchronized."
+                    12500 -> "Sign up failed (Code 12500). Please update Google Play Services."
+                    else -> "Google sign-up error (${e.statusCode}): ${e.message}"
+                }
+                if (msg != null) onGoogleSignInError(msg)
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -407,6 +632,46 @@ fun RegisterScreen(
                         Text("Create Account", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(Color(0xFF2E2E38))
+                    )
+                    Text(
+                        text = "OR",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(Color(0xFF2E2E38))
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                GoogleSignInButton(
+                    text = "Sign up with Google",
+                    isLoading = uiState.isLoading,
+                    onClick = {
+                        onDismissError()
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        }
+                    }
+                )
             }
 
             Spacer(Modifier.height(20.dp))

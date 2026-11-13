@@ -44,7 +44,7 @@ class VotingViewModel : ViewModel() {
     private var currentUid: String? = null
 
     fun bindUser(user: UserProfile) {
-        val admin = FirebaseRepo.isVotingAdmin(user.email)
+        val admin = FirebaseRepo.isVotingAdmin(user.email, user.role)
         if (currentUid == user.uid && roomsListener != null) {
             _uiState.update { it.copy(isAdmin = admin) }
             return
