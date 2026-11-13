@@ -1,5 +1,6 @@
 package com.anurag.activestudent.ui.auth
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import com.anurag.activestudent.data.FirebaseRepo
 import com.anurag.activestudent.data.UserProfile
@@ -8,7 +9,9 @@ import com.anurag.activestudent.data.parseAnuragEmail
 import com.anurag.activestudent.data.safeString
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -154,72 +157,109 @@ class AuthViewModel : ViewModel() {
             }
     }
 
+    fun checkPendingAuth() {
+        val pending = auth.pendingAuthResult ?: return
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        pending
+            .addOnSuccessListener { result -> handleGoogleAuthSuccess(result.user) }
+            .addOnFailureListener { ex -> handleGoogleAuthFailure(ex) }
+    }
+
+    fun signInWithGoogle(activity: Activity) {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+        val provider = OAuthProvider.newBuilder("google.com")
+        provider.addCustomParameters(mapOf("prompt" to "select_account"))
+
+        val pending = auth.pendingAuthResult
+        if (pending != null) {
+            pending
+                .addOnSuccessListener { result -> handleGoogleAuthSuccess(result.user) }
+                .addOnFailureListener { ex -> handleGoogleAuthFailure(ex) }
+        } else {
+            auth.startActivityForSignInWithProvider(activity, provider.build())
+                .addOnSuccessListener { result -> handleGoogleAuthSuccess(result.user) }
+                .addOnFailureListener { ex -> handleGoogleAuthFailure(ex) }
+        }
+    }
+
+    private fun handleGoogleAuthSuccess(fbUser: FirebaseUser?) {
+        if (fbUser == null) {
+            _uiState.update {
+                it.copy(isLoading = false, errorMessage = "Google sign-in returned no user.")
+            }
+            return
+        }
+        val userEmail = fbUser.email.orEmpty().lowercase(Locale.ROOT)
+        val isAdmin = FirebaseRepo.isAnyAdmin(userEmail)
+        if (!userEmail.endsWith("@anurag.edu.in") && !isAdmin) {
+            auth.signOut()
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Access restricted: Google account must be an @anurag.edu.in student email or an authorized administrator."
+                )
+            }
+            return
+        }
+
+        val fallbackName = fbUser.displayName?.takeIf { it.isNotBlank() }
+            ?: userEmail.substringBefore("@")
+        val meta = parseAnuragEmail(userEmail)
+        val role = when {
+            FirebaseRepo.isSuperAdmin(userEmail) -> "super_admin"
+            FirebaseRepo.isVotingAdmin(userEmail) -> "voting_admin"
+            FirebaseRepo.isTracurrencyAdmin(userEmail) -> "tracurrency_admin"
+            FirebaseRepo.isCanteenAdmin(userEmail) -> "canteen_admin"
+            else -> "student"
+        }
+
+        val userDoc = mutableMapOf<String, Any>(
+            "email" to userEmail,
+            "fullName" to fallbackName,
+            "name" to fallbackName,
+            "role" to role,
+            "lastLogin" to Timestamp.now()
+        )
+        if (meta.yearOfStudy.isNotBlank()) userDoc["yearOfStudy"] = meta.yearOfStudy
+        if (meta.section.isNotBlank()) userDoc["section"] = meta.section
+        if (meta.batch.isNotBlank()) userDoc["batch"] = meta.batch
+        val derivedRoll = userEmail.substringBefore("@").uppercase(Locale.ROOT)
+        if (meta.shortRoll.isNotBlank()) {
+            userDoc["rollNo"] = derivedRoll
+            userDoc["collegeId"] = derivedRoll
+        } else if (isAdmin) {
+            userDoc["rollNo"] = "ADMIN"
+            userDoc["collegeId"] = "ADMIN"
+        }
+
+        db.collection("users").document(fbUser.uid)
+            .set(userDoc, SetOptions.merge())
+            .addOnCompleteListener {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+    }
+
+    private fun handleGoogleAuthFailure(ex: Exception) {
+        val msg = ex.message.orEmpty()
+        val userFriendly = when {
+            msg.contains("canceled", ignoreCase = true) || msg.contains("cancelled", ignoreCase = true) -> null
+            msg.contains("network", ignoreCase = true) -> "Network error during Google sign in."
+            else -> mapFirebaseAuthError(ex)
+        }
+        _uiState.update {
+            it.copy(isLoading = false, errorMessage = userFriendly)
+        }
+    }
+
     fun signInWithGoogle(idToken: String, displayName: String?, email: String?) {
         _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential)
             .addOnSuccessListener { result ->
-                val fbUser = result.user
-                if (fbUser == null) {
-                    _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Google sign in returned no user.")
-                    }
-                    return@addOnSuccessListener
-                }
-                val userEmail = fbUser.email.orEmpty().lowercase(Locale.ROOT)
-                val isAdmin = FirebaseRepo.isAnyAdmin(userEmail)
-                if (!userEmail.endsWith("@anurag.edu.in") && !isAdmin) {
-                    auth.signOut()
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Access restricted: Google account must be an @anurag.edu.in student email or an authorized administrator."
-                        )
-                    }
-                    return@addOnSuccessListener
-                }
-
-                val fallbackName = fbUser.displayName?.takeIf { it.isNotBlank() }
-                    ?: displayName?.takeIf { !it.isNullOrBlank() }
-                    ?: userEmail.substringBefore("@")
-                val meta = parseAnuragEmail(userEmail)
-                val role = when {
-                    FirebaseRepo.isSuperAdmin(userEmail) -> "super_admin"
-                    FirebaseRepo.isVotingAdmin(userEmail) -> "voting_admin"
-                    FirebaseRepo.isTracurrencyAdmin(userEmail) -> "tracurrency_admin"
-                    FirebaseRepo.isCanteenAdmin(userEmail) -> "canteen_admin"
-                    else -> "student"
-                }
-
-                val userDoc = mutableMapOf<String, Any>(
-                    "email" to userEmail,
-                    "fullName" to fallbackName,
-                    "name" to fallbackName,
-                    "role" to role,
-                    "lastLogin" to Timestamp.now()
-                )
-                if (meta.yearOfStudy.isNotBlank()) userDoc["yearOfStudy"] = meta.yearOfStudy
-                if (meta.section.isNotBlank()) userDoc["section"] = meta.section
-                if (meta.batch.isNotBlank()) userDoc["batch"] = meta.batch
-                val derivedRoll = userEmail.substringBefore("@").uppercase(Locale.ROOT)
-                if (meta.shortRoll.isNotBlank()) {
-                    userDoc["rollNo"] = derivedRoll
-                    userDoc["collegeId"] = derivedRoll
-                } else if (isAdmin) {
-                    userDoc["rollNo"] = "ADMIN"
-                    userDoc["collegeId"] = "ADMIN"
-                }
-
-                db.collection("users").document(fbUser.uid)
-                    .set(userDoc, SetOptions.merge())
-                    .addOnCompleteListener {
-                        _uiState.update { it.copy(isLoading = false) }
-                    }
+                handleGoogleAuthSuccess(result.user)
             }
             .addOnFailureListener { ex ->
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = mapFirebaseAuthError(ex))
-                }
+                handleGoogleAuthFailure(ex)
             }
     }
 

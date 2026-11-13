@@ -79,6 +79,10 @@ private fun ActiveStudentRoot() {
     val authState by authVm.uiState.collectAsState()
     var showRegister by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        authVm.checkPendingAuth()
+    }
+
     when {
         authState.isInitializing -> {
             Box(
@@ -104,8 +108,8 @@ private fun ActiveStudentRoot() {
                     onRegister = { name, roll, email, pass, confirm ->
                         authVm.register(name, roll, email, pass, confirm)
                     },
-                    onGoogleSignIn = { idToken, name, email ->
-                        authVm.signInWithGoogle(idToken, name, email)
+                    onGoogleSignIn = { activity ->
+                        authVm.signInWithGoogle(activity)
                     },
                     onGoogleSignInError = { err ->
                         authVm.onGoogleSignInError(err)
@@ -117,8 +121,8 @@ private fun ActiveStudentRoot() {
                 LoginScreen(
                     uiState = authState,
                     onSignIn = { email, pass -> authVm.signIn(email, pass) },
-                    onGoogleSignIn = { idToken, name, email ->
-                        authVm.signInWithGoogle(idToken, name, email)
+                    onGoogleSignIn = { activity ->
+                        authVm.signInWithGoogle(activity)
                     },
                     onGoogleSignInError = { err ->
                         authVm.onGoogleSignInError(err)

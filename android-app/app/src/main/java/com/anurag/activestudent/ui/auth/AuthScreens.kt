@@ -69,10 +69,6 @@ import com.anurag.activestudent.ui.theme.GreenSoft
 import com.anurag.activestudent.ui.theme.GreenSuccess
 import com.anurag.activestudent.ui.theme.TextMain
 import com.anurag.activestudent.ui.theme.TextMuted
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
-import com.google.android.gms.common.api.ApiException
 
 @Composable
 fun GoogleLogo(modifier: Modifier = Modifier) {
@@ -175,7 +171,7 @@ fun GoogleSignInButton(
 fun LoginScreen(
     uiState: AuthUiState,
     onSignIn: (String, String) -> Unit,
-    onGoogleSignIn: (String, String?, String?) -> Unit,
+    onGoogleSignIn: (Activity) -> Unit,
     onGoogleSignInError: (String) -> Unit,
     onForgotPassword: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
@@ -186,39 +182,7 @@ fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val googleSignInClient = remember(context) {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(FirebaseRepo.GOOGLE_WEB_CLIENT_ID)
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account?.idToken
-                if (!idToken.isNullOrBlank()) {
-                    onGoogleSignIn(idToken, account.displayName, account.email)
-                } else {
-                    onGoogleSignInError("Unable to retrieve Google ID token.")
-                }
-            } catch (e: ApiException) {
-                val msg = when (e.statusCode) {
-                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> null
-                    GoogleSignInStatusCodes.NETWORK_ERROR -> "Network error during Google sign in."
-                    10 -> "Configuration error (Code 10). Google SHA-1 is being synchronized."
-                    12500 -> "Sign in failed (Code 12500). Please update Google Play Services."
-                    else -> "Google sign-in error (${e.statusCode}): ${e.message}"
-                }
-                if (msg != null) onGoogleSignInError(msg)
-            }
-        }
-    }
+    val activity = context as? Activity
 
     Box(
         modifier = Modifier
@@ -404,21 +368,10 @@ fun LoginScreen(
                     isLoading = uiState.isLoading,
                     onClick = {
                         onDismissError()
-                        val availability = com.google.android.gms.common.GoogleApiAvailability.getInstance()
-                        val resultCode = availability.isGooglePlayServicesAvailable(context)
-                        if (resultCode != com.google.android.gms.common.ConnectionResult.SUCCESS) {
-                            if (availability.isUserResolvableError(resultCode) && context is Activity) {
-                                availability.showErrorDialogFragment(context, resultCode, 9001)
-                            } else {
-                                onGoogleSignInError("Google Play Services on this device/emulator is outdated or missing. Please sign in with Email & Password below.")
-                            }
-                            return@GoogleSignInButton
-                        }
-
-                        try {
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                        } catch (e: Exception) {
-                            onGoogleSignInError("Unable to launch Google Sign-In: ${e.localizedMessage ?: "Unknown error"}")
+                        if (activity != null) {
+                            onGoogleSignIn(activity)
+                        } else {
+                            onGoogleSignInError("Unable to open Google sign-in window.")
                         }
                     }
                 )
@@ -447,7 +400,7 @@ fun LoginScreen(
 fun RegisterScreen(
     uiState: AuthUiState,
     onRegister: (String, String, String, String, String) -> Unit,
-    onGoogleSignIn: (String, String?, String?) -> Unit,
+    onGoogleSignIn: (Activity) -> Unit,
     onGoogleSignInError: (String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onDismissError: () -> Unit
@@ -460,39 +413,7 @@ fun RegisterScreen(
     var showPassword by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val googleSignInClient = remember(context) {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(FirebaseRepo.GOOGLE_WEB_CLIENT_ID)
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account?.idToken
-                if (!idToken.isNullOrBlank()) {
-                    onGoogleSignIn(idToken, account.displayName, account.email)
-                } else {
-                    onGoogleSignInError("Unable to retrieve Google ID token.")
-                }
-            } catch (e: ApiException) {
-                val msg = when (e.statusCode) {
-                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> null
-                    GoogleSignInStatusCodes.NETWORK_ERROR -> "Network error during Google sign up."
-                    10 -> "Configuration error (Code 10). Google SHA-1 is being synchronized."
-                    12500 -> "Sign up failed (Code 12500). Please update Google Play Services."
-                    else -> "Google sign-up error (${e.statusCode}): ${e.message}"
-                }
-                if (msg != null) onGoogleSignInError(msg)
-            }
-        }
-    }
+    val activity = context as? Activity
 
     Box(
         modifier = Modifier
@@ -680,21 +601,10 @@ fun RegisterScreen(
                     isLoading = uiState.isLoading,
                     onClick = {
                         onDismissError()
-                        val availability = com.google.android.gms.common.GoogleApiAvailability.getInstance()
-                        val resultCode = availability.isGooglePlayServicesAvailable(context)
-                        if (resultCode != com.google.android.gms.common.ConnectionResult.SUCCESS) {
-                            if (availability.isUserResolvableError(resultCode) && context is Activity) {
-                                availability.showErrorDialogFragment(context, resultCode, 9001)
-                            } else {
-                                onGoogleSignInError("Google Play Services on this device/emulator is outdated or missing. Please sign up using the form below.")
-                            }
-                            return@GoogleSignInButton
-                        }
-
-                        try {
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                        } catch (e: Exception) {
-                            onGoogleSignInError("Unable to launch Google Sign-In: ${e.localizedMessage ?: "Unknown error"}")
+                        if (activity != null) {
+                            onGoogleSignIn(activity)
+                        } else {
+                            onGoogleSignInError("Unable to open Google sign-in window.")
                         }
                     }
                 )
